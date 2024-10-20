@@ -79,7 +79,7 @@ class ResumeUploadView(APIView):
             prompt = f"{keywords} select the value in array and generate ten question based on that for technical and behvioural question for the {role}"
     
         )
-        question_texts = questions.generate_questions()
+        question_texts = questions.generate_questions().split('\n')
         print(question_texts)
         questions_list = []
         for question_text in question_texts:
@@ -110,6 +110,26 @@ class MockInterviewData(APIView):
         except Exception as e:
             return JsonResponse({"error":str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+@method_decorator(csrf_exempt, name='dispatch')  
+class SubmitMockInterview(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            mockinterview_data = MockInterview.objects.get(user=request.user,id=request.POST.get('id'))      
+            # serailizer_data = MockInterviewSerializer(mockinterview_data,many=True)
+            questions = GeminiApi(
+                prompt = f"for the given structure {eval(request.POST.get('answers'))} give a rating a breif review what did it lack if any in the answer"
+            )
+
+            review = questions.generate_questions()
+            # print(question_texts)
+            mockinterview_data.answers = request.POST.get('answers')
+            mockinterview_data.review  = review
+            mockinterview_data.save()
+            return JsonResponse({"success":"Submitted Successfully"}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return JsonResponse({"error":str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class GeminiApi:
     def __init__(self, **kwargs):
@@ -144,7 +164,7 @@ class GeminiApi:
 
         response = model.generate_content(self.prompt)
 
-        response_text = response.text.strip().split('\n')
+        response_text = response.text.strip()
         print(response_text)
         
 
