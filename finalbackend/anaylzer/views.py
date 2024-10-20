@@ -16,7 +16,7 @@ import google.generativeai as genai
 from .models import MockInterview
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-
+from finalbackend.settings import GEMINI_API_KEY
 @method_decorator(csrf_exempt, name='dispatch')  
 class ResumeUploadView(APIView):
     permission_classes = [IsAuthenticated]
@@ -148,7 +148,7 @@ class GeminiApi:
         )
 
     def generate_questions(self,**kwargs):
-        genai.configure(api_key="AIzaSyBvMtbKwkTOo3N7Z934TRCCXZL2dSnF5cw")
+        genai.configure(api_key=GEMINI_API_KEY)
 
         generation_config = {
             "temperature": 0.7,

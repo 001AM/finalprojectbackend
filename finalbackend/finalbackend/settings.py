@@ -29,7 +29,7 @@ print(env('SECRET_KEY'))
 print(env('DATABASE_NAME'))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
-
+GEMINI_API_KEY = env('GEMINI_API_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
