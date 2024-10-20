@@ -1,0 +1,52 @@
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Django
+*.log
+*.sqlite3
+db.sqlite3
+/media
+/staticfiles
+/venv
+.env
+/env
+/migrations/
+!*/migrations/__init__.py  # Keep __init__.py files
+# IDE and Editor files
+*.swp
+*.swo
+*.DS_Store
+*.idea/
+.vscode/
+*.iml
+
+# Pytest
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+
+# Coverage reports
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+
+# Jupyter Notebook files
+.ipynb_checkpoints/
+
+# Other
+*.pot
+*.mo
+*.pot~
+*.orig
+*.tmp
+*.bak
+*.log

@@ -1,0 +1,47 @@
+version: "3"
+
+services:
+  django:
+    build: .
+    command: >
+      sh -c "gunicorn finalbackend.wsgi:application --bind 0.0.0.0:8000 &
+              daphne -b 0.0.0.0 -p 8001 finalbackend.asgi:application"
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000" # Map container port 8000 to host port 8000
+      - "8001:8001" # Map container port 8001 to host port 8001
+    depends_on:
+      - redis
+      - db
+    environment:
+      - DJANGO_SETTINGS_MODULE=finalbackend.settings # Ensure Django settings are correctly referenced
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: manager_db
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: soham@05
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: sohampanchal1469@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: soham@05
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data: {}
