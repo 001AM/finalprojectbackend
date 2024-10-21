@@ -50,9 +50,9 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 #######################MODELS IMPORT#####################################
 from django.contrib.auth.models import User
-from .models import UserProfile
+from .models import UserProfile, Post
 #######################SERIALIZER IMPORT#####################################
-from .serializers import UserSerializer,LoginSerializer,UserProfileUpdateSerializer
+from .serializers import UserSerializer,LoginSerializer,UserProfileUpdateSerializer, PostSerializer
 
 
 # ##############################################################################################################################################
@@ -177,3 +177,87 @@ def update_user_profile(request):
         serializer.save()
         return JsonResponse(serializer.data, status=status.HTTP_200_OK)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .models import UserConnection, User
+from django.shortcuts import get_object_or_404
+from .serializers import RelationSerializer
+from django.contrib.auth.models import User
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def follow_user(request):
+    follower_id = request.user.id  # Get the ID of the user
+    following_id = request.data.get('following_id')  
+
+    if not following_id:
+        return Response({'message': 'Following ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        following = User.objects.get(id=following_id)
+    except User.DoesNotExist:
+        return Response({'message': 'User Info does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+    follower = User.objects.get(id=follower_id)  # Get the user instance using the ID
+
+    if UserConnection.objects.filter(sender_user=follower, receiver_user=following).exists():
+        return Response({'message': 'Already following this user'}, status=status.HTTP_400_BAD_REQUEST)
+
+    connection = UserConnection.objects.create(sender_user=follower, receiver_user=following)
+
+    serializer = RelationSerializer(connection)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def unfollow_user(request):
+    follower = request.user.id
+    following = request.data.get('following_id')
+    connection = get_object_or_404(UserConnection, sender_user=follower, receiver_user=following)
+    connection.delete()
+    return Response({'message': 'User unfollowed successfully'}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def follower_list(request):
+    try:
+        follower = request.user.id
+        followers = UserConnection.objects.filter(sender_user=follower)
+        serializer = RelationSerializer(followers, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except UserConnection.DoesNotExist:
+        return Response({'message': 'No connections found for the user'}, status=status.HTTP_404_NOT_FOUND) 
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_post(request):
+    # Ensure the author is automatically set as the authenticated user
+    data = request.data.copy()  # Create a mutable copy of request data
+    data['author'] = request.user.id  # Set the author to the current logged-in user
+    print(data)
+    serializer = PostSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save(author=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_posts(request):
+    try:
+        post_id = request.GET.get('id')
+        user = request.user
+        if post_id:
+            posts = Post.objects.get(id=post_id)
+            serializer = PostSerializer(posts)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            posts = Post.objects.filter(author=user).order_by('created_at')
+            serializer = PostSerializer(posts, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+    except Post.DoesNotExist:
+        return Response({'message': 'No posts found'}, status=status.HTTP_404_NOT_FOUND)

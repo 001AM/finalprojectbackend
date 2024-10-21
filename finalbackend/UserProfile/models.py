@@ -12,6 +12,7 @@ class UserProfile(models.Model):
     website = models.URLField(null=True,blank=True)
     location = models.CharField(max_length=255, blank=True, null=True)
     gender = models.CharField(max_length=10, choices=[('M', 'Male'), ('F', 'Female'), ('O', 'Other')], blank=True, null=True)
+    is_developer = models.BooleanField(default=True, blank=True, null=True)
 
     class Meta:
         db_table = 'userprofile__userprofile'
@@ -54,3 +55,39 @@ class UserCategory(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - Categories'
+
+class UserConnection(models.Model):
+    sender_user = models.ForeignKey(User, related_name='sent_connections', on_delete=models.CASCADE)
+    receiver_user = models.ForeignKey(User, related_name='received_connections', on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=False, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'relation_user_connection'
+        unique_together = ['sender_user', 'receiver_user']
+
+class Post(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    image = models.ImageField(upload_to='post_images/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    published_at = models.DateTimeField(default=timezone.now)
+    is_published = models.BooleanField(default=False)
+    likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
+
+    class Meta:
+        db_table = 'userprofile__posts'
+        verbose_name = 'Post'
+        verbose_name_plural = 'Posts'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def total_likes(self):
+        return self.likes.count()
+
+    def was_published_recently(self):
+        return self.published_at >= timezone.now() - timezone.timedelta(days=1)

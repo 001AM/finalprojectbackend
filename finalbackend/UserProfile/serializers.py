@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.exceptions import ValidationError
-from .models import UserProfile
+from .models import UserProfile, UserConnection, Post
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,6 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(password)  # Set the password using set_password method
         user.is_active= True
         user.save()
+        UserProfile.objects.create(user=user)
         return user
 
 class LoginSerializer(serializers.Serializer):
@@ -55,3 +56,21 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'location': {'required': False},
             'gender': {'required': False},
         }
+
+
+class RelationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserConnection
+        fields = '__all__'
+
+class PostSerializer(serializers.ModelSerializer):
+    total_likes = serializers.SerializerMethodField()  # To calculate the total likes
+
+    class Meta:
+        model = Post
+        fields = ['id', 'author', 'title', 'content', 'image', 'created_at', 'updated_at', 'published_at', 'is_published', 'total_likes']
+        read_only_fields = ['author', 'created_at', 'updated_at', 'total_likes']  # These fields will not be set by the user
+
+    def get_total_likes(self, obj):
+        return obj.likes.count()
