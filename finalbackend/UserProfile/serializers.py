@@ -44,6 +44,12 @@ class LoginSerializer(serializers.Serializer):
         return user
 
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        depth = 1
+        fields = '__all__'
+
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile

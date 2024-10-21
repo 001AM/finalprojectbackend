@@ -1,18 +1,4 @@
 ﻿######################EXTRA FUNCTION IMPORT##################################
-import re
-import os
-import csv
-import pytz
-import json
-import uuid
-import hmac
-import time
-import base64
-import asyncio
-import hashlib
-import requests
-import websocket
-import threading
 from copy import deepcopy
 from decimal import Decimal
 from datetime import datetime, timedelta
@@ -23,23 +9,6 @@ import traceback
 ########################EXTRA DJANGO IMPORT###################################
 from django.utils.timezone import now
 from django.http import HttpResponse,JsonResponse
-from django.core.mail import send_mail
-from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Q, F, Count, Sum, Value, CharField, Subquery, OuterRef, ExpressionWrapper, IntegerField
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db import connection, transaction,DatabaseError,IntegrityError
-from django.utils import timezone
-from django.core.serializers import serialize
-from django.forms.models import model_to_dict
-from django.db.models.functions import Concat, TruncDay, TruncMonth, ExtractHour, ExtractMonth, ExtractDay, ExtractYear
-from django.core.files.base import ContentFile
-from django.conf import settings
-from django.utils.timezone import make_aware
-from django.utils.dateparse import parse_date
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.shortcuts import get_object_or_404
-from decimal import Decimal, InvalidOperation
-from django.contrib.auth import authenticate, login
 #######################REST_FRAMEWORK IMPORT#####################################
 from rest_framework.decorators import *
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -52,7 +21,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from .models import UserProfile, Post
 #######################SERIALIZER IMPORT#####################################
-from .serializers import UserSerializer,LoginSerializer,UserProfileUpdateSerializer, PostSerializer
+from .serializers import UserSerializer,LoginSerializer,UserProfileUpdateSerializer, PostSerializer,UserProfileSerializer
 
 
 # ##############################################################################################################################################
@@ -170,7 +139,7 @@ def update_user_profile(request):
     try:
         user_profile = UserProfile.objects.get(user=user)
     except UserProfile.DoesNotExist:
-        return JsonResponse({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        user_profile = UserProfile.objects.create(user=user)
 
     serializer = UserProfileUpdateSerializer(user_profile, data=request.data, partial=True)
     if serializer.is_valid():
@@ -261,3 +230,21 @@ def get_user_posts(request):
             return Response(serializer.data, status=status.HTTP_200_OK)
     except Post.DoesNotExist:
         return Response({'message': 'No posts found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([JWTAuthentication])
+def get_user_profile(request):
+    user = request.user
+
+    try:
+        user_profile = UserProfile.objects.get(user=user)
+    except UserProfile.DoesNotExist:
+        user_profile = UserProfile.objects.create(user=user)
+
+    serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(serializer.data, status=status.HTTP_200_OK)
+    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
